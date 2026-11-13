@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>简易记账工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="summary-bar" id="summaryBar">
+        <div class="summary-title">本月概览</div>
+        <div class="summary-cards">
+            <div class="card card-income">
+                <span class="card-label">收入</span>
+                <span class="card-value" id="summaryIncome">0.00</span>
+            </div>
+            <div class="card card-expense">
+                <span class="card-label">支出</span>
+                <span class="card-value" id="summaryExpense">0.00</span>
+            </div>
+            <div class="card card-balance">
+                <span class="card-label">结余</span>
+                <span class="card-value" id="summaryBalance">0.00</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="panel" aria-label="记账表单">
+            <h2 class="panel-title">记一笔</h2>
+            <form id="recordForm" novalidate>
+                <div class="form-row">
+                    <label class="field">
+                        <span class="field-label">日期</span>
+                        <input type="date" id="fieldDate" name="happened_on" required>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">收 / 支</span>
+                        <select id="fieldDirection" name="direction" required>
+                            <option value="out">支出</option>
+                            <option value="in">收入</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label class="field">
+                        <span class="field-label">分类</span>
+                        <select id="fieldCategory" name="category" required>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">金额</span>
+                        <input type="text" id="fieldAmount" name="amount" inputmode="decimal"
+                               placeholder="0.00" required>
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label class="field field-grow">
+                        <span class="field-label">备注（可选，≤100 字）</span>
+                        <input type="text" id="fieldNote" name="note" maxlength="100"
+                               placeholder="例如：批发市场拿货">
+                    </label>
+                </div>
+                <p class="form-error" id="formError" role="alert" hidden></p>
+                <button type="submit" class="btn-primary" id="submitBtn">记一笔</button>
+            </form>
+        </section>
+
+        <section class="panel" aria-label="流水列表">
+            <div class="month-switch">
+                <button type="button" class="btn-month" id="prevMonth" aria-label="上一月">‹</button>
+                <span class="month-label" id="monthLabel">2026年11月</span>
+                <button type="button" class="btn-month" id="nextMonth" aria-label="下一月">›</button>
+            </div>
+
+            <ul class="record-list" id="recordList"></ul>
+            <p class="empty-tip" id="emptyTip" hidden>这个月还没有记账</p>
+        </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
