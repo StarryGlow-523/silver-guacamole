@@ -22,7 +22,11 @@ import db
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# 固定分类枚举（需求文档 4.2）
+# 固定分类枚举（需求文档 4.2）；按收支方向分组，便于前端联动
+CATEGORIES_BY_DIRECTION = {
+    "out": ["进货", "房租", "水电", "其他"],
+    "in": ["销售", "其他"],
+}
 CATEGORIES = ["进货", "房租", "水电", "销售", "其他"]
 DIRECTIONS = ["in", "out"]
 
@@ -107,7 +111,11 @@ def create_app():
 
     @app.route("/")
     def index():
-        return render_template("index.html", categories=CATEGORIES)
+        return render_template(
+            "index.html",
+            categories=CATEGORIES,
+            categories_by_direction=CATEGORIES_BY_DIRECTION,
+        )
 
     # ---------- 记一笔 ----------
 

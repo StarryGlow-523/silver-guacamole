@@ -26,6 +26,17 @@
     var $expense = document.getElementById("summaryExpense");
     var $balance = document.getElementById("summaryBalance");
     var $toast = document.getElementById("toast");
+    var $hint = document.getElementById("categoryHint");
+
+    // 分类按收支方向分组（与后端 CATEGORIES_BY_DIRECTION 对齐）
+    var CATEGORIES_BY_DIRECTION = {
+        out: ["进货", "房租", "水电", "其他"],
+        in: ["销售", "其他"],
+    };
+    var HINT_BY_DIRECTION = {
+        out: "支出：进货 / 房租 / 水电 / 其他",
+        in: "收入：销售 / 其他",
+    };
 
     // ---------- 工具 ----------
 
@@ -256,6 +267,20 @@
         refreshAll();
     }
 
+    // 按收支方向联动分类下拉，并更新提示
+    function syncCategory() {
+        var direction = $direction.value;
+        var cats = CATEGORIES_BY_DIRECTION[direction] || [];
+        $category.textContent = "";
+        cats.forEach(function (cat) {
+            var opt = document.createElement("option");
+            opt.value = cat;
+            opt.textContent = cat;
+            $category.appendChild(opt);
+        });
+        $hint.textContent = HINT_BY_DIRECTION[direction] || "";
+    }
+
     // ---------- 初始化 ----------
 
     function init() {
@@ -265,6 +290,8 @@
 
         $date.value = todayStr();
         $form.addEventListener("submit", handleSubmit);
+        $direction.addEventListener("change", syncCategory);
+        syncCategory();
         document.getElementById("prevMonth").addEventListener("click", function () {
             shiftMonth(-1);
         });
