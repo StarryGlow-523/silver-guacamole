@@ -1,16 +1,21 @@
 /* 简易记账工具 · 前端逻辑（原生 JS，fetch 调用同源接口）
  * 安全：渲染用户输入一律使用 textContent，不使用 innerHTML。
+ * 三页面：record 记账 / records 流水 / stats 统计，hash 路由切换。
  */
 
 (function () {
     "use strict";
 
+    var VIEWS = ["record", "records", "stats"];
+
     var state = {
         year: 0,
         month: 0, // 1-12
         submitting: false,
+        view: "record",
     };
 
+    // 记账表单
     var $form = document.getElementById("recordForm");
     var $date = document.getElementById("fieldDate");
     var $direction = document.getElementById("fieldDirection");
@@ -19,14 +24,25 @@
     var $note = document.getElementById("fieldNote");
     var $formError = document.getElementById("formError");
     var $submitBtn = document.getElementById("submitBtn");
+    var $hint = document.getElementById("categoryHint");
+
+    // 流水视图
     var $list = document.getElementById("recordList");
     var $emptyTip = document.getElementById("emptyTip");
-    var $monthLabel = document.getElementById("monthLabel");
+
+    // 统计视图
     var $income = document.getElementById("summaryIncome");
     var $expense = document.getElementById("summaryExpense");
     var $balance = document.getElementById("summaryBalance");
+    var $categoryList = document.getElementById("categoryList");
+    var $categoryEmpty = document.getElementById("categoryEmpty");
+
     var $toast = document.getElementById("toast");
-    var $hint = document.getElementById("categoryHint");
+    var $monthLabels = document.querySelectorAll(".js-month-label");
+    var $prevBtns = document.querySelectorAll(".js-prev-month");
+    var $nextBtns = document.querySelectorAll(".js-next-month");
+    var $navItems = document.querySelectorAll(".nav-item");
+    var $views = document.querySelectorAll(".view");
 
     // 分类按收支方向分组（与后端 CATEGORIES_BY_DIRECTION 对齐）
     var CATEGORIES_BY_DIRECTION = {
@@ -76,23 +92,43 @@
         return "请求失败，请重试";
     }
 
-    // ---------- 数据请求 ----------
-
-    function fetchSummary() {
-        var key = monthKey(state.year, state.month);
-        return fetch("/api/summary?month=" + encodeURIComponent(key))
-            .then(function (res) {
-                return res.json();
-            })
-            .then(function (data) {
-                $income.textContent = formatMoney(data.income);
-                $expense.textContent = formatMoney(data.expense);
-                $balance.textContent = formatMoney(data.balance);
-            })
-            .catch(function () {
-                showToast("统计加载失败，请重试");
-            });
+    function updateMonthLabels() {
+        var text = state.year + "年" + state.month + "月";
+        $monthLabels.forEach(function (el) {
+            el.textContent = text;
+        });
     }
+
+    // ---------- 路由 ----------
+
+    function parseHash() {
+        var hash = (location.hash || "").replace(/^#\//, "");
+        return VIEWS.indexOf(hash) >= 0 ? hash : "record";
+    }
+
+    function showView(name) {
+        state.view = name;
+        $views.forEach(function (view) {
+            view.classList.toggle("active", view.dataset.view === name);
+        });
+        $navItems.forEach(function (btn) {
+            btn.classList.toggle("active", btn.dataset.target === name);
+        });
+        refreshCurrent();
+    }
+
+    function setView(name) {
+        if (VIEWS.indexOf(name) < 0) {
+            name = "record";
+        }
+        if (location.hash !== "#/" + name) {
+            location.hash = "/" + name;
+        } else {
+            showView(name);
+        }
+    }
+
+    // ---------- 数据请求 ----------
 
     function fetchRecords() {
         var key = monthKey(state.year, state.month);
@@ -108,9 +144,29 @@
             });
     }
 
-    function refreshAll() {
-        $monthLabel.textContent = state.year + "年" + state.month + "月";
-        return Promise.all([fetchSummary(), fetchRecords()]);
+    function fetchSummary() {
+        var key = monthKey(state.year, state.month);
+        return fetch("/api/summary?month=" + encodeURIComponent(key))
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (data) {
+                $income.textContent = formatMoney(data.income);
+                $expense.textContent = formatMoney(data.expense);
+                $balance.textContent = formatMoney(data.balance);
+                renderCategoryList(data.by_category || []);
+            })
+            .catch(function () {
+                showToast("统计加载失败，请重试");
+            });
+    }
+
+    function refreshCurrent() {
+        if (state.view === "records") {
+            fetchRecords();
+        } else if (state.view === "stats") {
+            fetchSummary();
+        }
     }
 
     // ---------- 渲染 ----------
@@ -158,6 +214,48 @@
             li.appendChild(amount);
             li.appendChild(del);
             $list.appendChild(li);
+        });
+    }
+
+    function renderCategoryList(entries) {
+        $categoryList.textContent = "";
+        $categoryEmpty.hidden = entries.length > 0;
+
+        var groups = [
+            { direction: "in", title: "收入" },
+            { direction: "out", title: "支出" },
+        ];
+
+        groups.forEach(function (group) {
+            var rows = entries.filter(function (e) {
+                return e.direction === group.direction;
+            });
+            if (rows.length === 0) {
+                return;
+            }
+
+            var groupTitle = document.createElement("li");
+            groupTitle.className = "category-group-title";
+            groupTitle.textContent = group.title;
+            $categoryList.appendChild(groupTitle);
+
+            rows.forEach(function (e) {
+                var li = document.createElement("li");
+                li.className = "category-item";
+
+                var name = document.createElement("span");
+                name.className = "category-name";
+                name.textContent = e.category;
+
+                var amount = document.createElement("span");
+                amount.className = "record-amount " + e.direction;
+                var sign = e.direction === "in" ? "+" : "-";
+                amount.textContent = sign + formatMoney(e.amount);
+
+                li.appendChild(name);
+                li.appendChild(amount);
+                $categoryList.appendChild(li);
+            });
         });
     }
 
@@ -224,7 +322,6 @@
                 $form.reset();
                 $date.value = todayStr();
                 showToast("已记一笔");
-                refreshAll();
             })
             .catch(function () {
                 showFormError("保存失败，请重试");
@@ -253,7 +350,7 @@
                     return;
                 }
                 showToast("已删除");
-                refreshAll();
+                refreshCurrent();
             })
             .catch(function () {
                 showToast("删除失败，请重试");
@@ -264,7 +361,8 @@
         var d = new Date(state.year, state.month - 1 + delta, 1);
         state.year = d.getFullYear();
         state.month = d.getMonth() + 1;
-        refreshAll();
+        updateMonthLabels();
+        refreshCurrent();
     }
 
     // 按收支方向联动分类下拉，并更新提示
@@ -289,17 +387,33 @@
         state.month = now.getMonth() + 1;
 
         $date.value = todayStr();
+        updateMonthLabels();
+
         $form.addEventListener("submit", handleSubmit);
         $direction.addEventListener("change", syncCategory);
         syncCategory();
-        document.getElementById("prevMonth").addEventListener("click", function () {
-            shiftMonth(-1);
+
+        $prevBtns.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                shiftMonth(-1);
+            });
         });
-        document.getElementById("nextMonth").addEventListener("click", function () {
-            shiftMonth(1);
+        $nextBtns.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                shiftMonth(1);
+            });
         });
 
-        refreshAll();
+        $navItems.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                setView(btn.dataset.target);
+            });
+        });
+        window.addEventListener("hashchange", function () {
+            showView(parseHash());
+        });
+
+        showView(parseHash());
     }
 
     document.addEventListener("DOMContentLoaded", init);

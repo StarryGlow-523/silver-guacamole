@@ -38,17 +38,16 @@ body {
 .container {
     max-width: 640px;
     margin: 0 auto;
-    padding: 12px 14px 40px;
+    padding: 12px 14px 88px;
 }
 
-/* 顶部合计区（粘性） */
-.summary-bar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--panel);
-    border-bottom: 1px solid var(--line);
-    padding: 14px 16px 12px;
+/* 视图显隐（三页面 hash 路由） */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
 }
 
 .summary-title {
@@ -297,11 +296,76 @@ body {
     margin: 0;
 }
 
+/* 分类汇总列表 */
+.category-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.category-group-title {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin: 10px 0 4px;
+}
+
+.category-group-title:first-child {
+    margin-top: 0;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.category-item:last-child {
+    border-bottom: none;
+}
+
+.category-name {
+    min-width: 0;
+    font-weight: 500;
+}
+
+/* 底部导航 */
+.bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+}
+
+.nav-item {
+    height: 44px;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    color: var(--text-sub);
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.nav-item.active {
+    color: var(--primary);
+    font-weight: 600;
+    background: rgba(47, 111, 237, 0.08);
+}
+
 /* 轻提示 */
 .toast {
     position: fixed;
     left: 50%;
-    bottom: 40px;
+    bottom: 84px;
     transform: translateX(-50%);
     background: rgba(31, 35, 41, 0.92);
     color: #fff;
